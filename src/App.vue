@@ -5,6 +5,7 @@
     </projection-mapper>
   </div>
 </template>
+
 <script>
 import ProjectionMapper from "./components/ProjectionMapper";
 import Tweets from "./components/Tweets";
