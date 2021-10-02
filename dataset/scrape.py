@@ -39,7 +39,6 @@ class TweetScraper:
         self.driver.maximize_window()
         size = self.driver.get_window_size()
         self.driver.set_window_size(800, size['height'])
-        print(self.driver.get_window_size())
 
         self.dataset = pd.read_excel(dataset) if dataset is not None else None
         self.expand = expand
@@ -259,7 +258,6 @@ class TweetScraper:
 
         index = 0
         while index < len(elements):
-            print(index, len(elements))
             timeline = self.driver.find_element_by_xpath("//div[@aria-label='Timeline: Conversation']")
             elements = timeline.find_elements_by_xpath("./div/div")
             element = elements[index]
@@ -288,18 +286,23 @@ class TweetScraper:
                 if abandon:
                     self.logger.error('Error parsing the main tweet. Skipping this tweet.')
                     break
-                if main_tweet is not False:
-                    self.logger.info(
-                        'Parsed tweet by @%s: %s' % 
-                        (main_tweet['user_handle'], repr(main_tweet['content'][:40] + '...'))
-                    )
-                    self.add_parsed_tweet(main_tweet)
+                if main_tweet is False:
+                    self.logger.error('Main tweet seems to be a reply. Saving and skipping.')
+                    break
+
+                self.logger.info(
+                    'Parsed tweet by @%s: %s' % 
+                    (main_tweet['user_handle'], repr(main_tweet['content'][:40] + '...'))
+                )
+                self.add_parsed_tweet(main_tweet)
+                
 
             # Otherwise, the tweet is a reply. By this time, we would have already had the main tweet.
             else:
                 # Skip deleted tweets and "show replies".
                 if  element.text == 'This Tweet was deleted by the Tweet author. Learn more' \
-                    or element.text == 'Show replies':
+                    or element.text == 'Show replies' \
+                    or element.text == 'More replies':
                     self.logger.debug("Not a tweet. Skipping this element: %s" % repr(element.text))
                     continue
                 
@@ -325,11 +328,13 @@ class TweetScraper:
     def grab_tweets(self):
         # for _, row in self.dataset.iterrows():
         for _, row in self.dataset.iterrows():
-            try:
-                self.grab_one_tweet(row)
-            except Exception as e:
-                self.logger.critical('Unhandled exception: %s' % e)
+            if row['url'] != 'https://t.co/6FAgcNZ1bL':
                 continue
+            # try:
+            self.grab_one_tweet(row)
+            # except Exception as e:
+            #     self.logger.critical('Unhandled exception: %s' % e)
+            #     continue
             
         self.driver.quit()
 
