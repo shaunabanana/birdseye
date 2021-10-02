@@ -95,7 +95,7 @@ class TweetScraper:
         self.logger.debug('End of expansion. Now there are %d elements in the timeline' % len(elements))
 
 
-    def parse_tweet_element(self, element, reply_to=None, last_reply=None):
+    def parse_tweet_element(self, element, reply_to=None):
         tweet = {
             'uuid': str(uuid.uuid4()),
             'tweet_id': self.driver.current_url.rsplit('/', 1)[-1],
@@ -130,8 +130,8 @@ class TweetScraper:
                 tweet['content'] = contents[3].text + '\n' + contents[4].text
             except IndexError:
                 self.logger.debug('This tweet seems to be a reply to a reply. Skipping.')
-                for i, content in enumerate(contents):
-                    print(i, content.text)
+                with open('./data/reply_to_replies/%s.json' % tweet['tweet_id'], 'w') as f:
+                    f.write(json.dumps(tweet))
                 return False, False
         else:
             tweet['content'] = contents[3].text
