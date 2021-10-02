@@ -36,6 +36,7 @@ class TweetScraper:
 
         # Create a new Safari window
         self.driver = webdriver.Safari()
+        print(self.driver.get_window_size())
 
         self.dataset = pd.read_excel(dataset) if dataset is not None else None
         self.expand = expand
@@ -94,15 +95,15 @@ class TweetScraper:
         self.logger.debug('End of expansion. Now there are %d elements in the timeline' % len(elements))
 
 
-    def parse_tweet_element(self, element, reply_to=None):
+    def parse_tweet_element(self, element, reply_to=None, last_reply=None):
         tweet = {
             'uuid': str(uuid.uuid4()),
             'tweet_id': self.driver.current_url.rsplit('/', 1)[-1],
             'replies': [],
-            'reply_to': reply_to['uuid'] if reply_to else None,
+            'reply_to': reply_to['tweet_id'] if reply_to else None,
         }
         if reply_to is not None:
-            reply_to['replies'].append(tweet['uuid'])
+            reply_to['replies'].append(tweet['tweet_id'])
 
         try:
             author = element.find_element_by_xpath(".//article/div/div/div/div[2]")
@@ -129,6 +130,8 @@ class TweetScraper:
                 tweet['content'] = contents[3].text + '\n' + contents[4].text
             except IndexError:
                 self.logger.debug('This tweet seems to be a reply to a reply. Skipping.')
+                for i, content in enumerate(contents):
+                    print(i, content.text)
                 return False, False
         else:
             tweet['content'] = contents[3].text
@@ -319,12 +322,12 @@ class TweetScraper:
         tweet['avatar_extension'] = extension
         self.tweets.append(tweet)
 
-        with open('./data/tweets/%s.json' % tweet['uuid'], 'w') as f:
+        with open('./data/tweets/%s.json' % tweet['tweet_id'], 'w') as f:
             f.write(json.dumps(tweet));
 
         with request.urlopen(tweet['avatar']) as response:
             data = response.read()
-            with open('./data/avatars/%s.%s' % (tweet['uuid'], extension), 'wb') as f:
+            with open('./data/avatars/%s.%s' % (tweet['tweet_id'], extension), 'wb') as f:
                 f.write(data);
 
 if __name__ == '__main__':
