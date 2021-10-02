@@ -160,7 +160,12 @@ class TweetScraper:
         self.driver.execute_script("document.body.style['-webkit-user-select'] = 'none';")
 
         self.logger.info("Attempting to click a reply.")
-        self.click_tweet(element)
+        try:
+            self.click_tweet(element)
+        except MoveTargetOutOfBoundsException:
+            self.logger.warning("Can't click this tweet. Skipping it.")
+            return False, False
+        
         self.sleep_between_interactions()
         self.sleep_until_loaded()
 
@@ -182,7 +187,7 @@ class TweetScraper:
                 self.driver.switch_to.window(self.maintab)
                 return False, False
             else:
-                self.logger.error("Error getting the timeline. We also aren't in a new tab.")
+                self.logger.error("Error getting the timeline. We also aren't in a new tab. Abandoning this line of tweets.")
                 return False, True
         
         self.logger.info('Successfully located the timeline.')
@@ -204,8 +209,8 @@ class TweetScraper:
         # for _, row in self.dataset.iterrows():
         for _, row in self.dataset.iterrows():
 
-            # if row['url'] != 'https://twitter.com/cnnbrk/status/1337810503981264903':
-            #     continue
+            if row['url'] != 'https://twitter.com/cnnbrk/status/1337810503981264903':
+                continue
 
             self.logger.info('Grabbing tweet from: %s' % row['url'])
             try:
@@ -323,7 +328,7 @@ class TweetScraper:
                 f.write(data);
 
 if __name__ == '__main__':
-    scraper = TweetScraper(dataset='./data/initial.xlsx', expand=0)
+    scraper = TweetScraper(dataset='./data/initial.xlsx')
 
     # Read dataset
     # scraper.read_dataset(
