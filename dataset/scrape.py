@@ -139,7 +139,13 @@ class TweetScraper:
                     f.write(json.dumps(tweet))
                 return False, False
         else:
-            tweet['content'] = contents[3].text
+            try:
+                tweet['content'] = contents[3].text
+            except IndexError:
+                self.logger.debug('The main tweet seems to be a reply. Skipping for now.')
+                with open('./data/reply_to_replies/%s.json' % tweet['tweet_id'], 'w') as f:
+                    f.write(json.dumps(tweet))
+                return False, False
         tweet['date'] = contents[-3].text
         tweet['engagement'] = contents[-2].text
             
