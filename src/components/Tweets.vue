@@ -214,8 +214,6 @@ export default {
       // Update data. This is just code for testing.
       // The robot positions should come from TOIO.
       for (let i in this.robots) {
-        // this.robots[i].x = Math.random() * 800;
-        // this.robots[i].y = Math.random() * 800;
         this.tweets[i].fx = this.robots[i].x;
         this.tweets[i].fy = this.robots[i].y;
       }
