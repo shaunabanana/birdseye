@@ -49,9 +49,11 @@ class TweetScraper:
     def sleep_until_loaded(self):
         # Wait until the articles are loaded and available
         articles = self.driver.find_elements_by_xpath("//article")
-        while len(articles) == 0:
+        times = 0
+        while len(articles) == 0 and times < 5:
             time.sleep(3)
             articles = self.driver.find_elements_by_xpath("//article")
+            times += 1
 
 
     def sleep_between_interactions(self, loc=2, scale=2):
