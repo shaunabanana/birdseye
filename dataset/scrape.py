@@ -328,8 +328,8 @@ class TweetScraper:
     def grab_tweets(self):
         # for _, row in self.dataset.iterrows():
         for _, row in self.dataset.iterrows():
-            if row['url'] != 'https://t.co/6FAgcNZ1bL':
-                continue
+            # if row['url'] != 'https://t.co/6FAgcNZ1bL':
+            #     continue
             # try:
             self.grab_one_tweet(row)
             # except Exception as e:
