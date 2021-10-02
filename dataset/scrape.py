@@ -225,6 +225,9 @@ class TweetScraper:
         # Wait until the articles are loaded and available
         self.sleep_until_loaded()
 
+        if 'twitter' not in self.driver.current_url:
+            return
+
         # Disable text selection to prevent clicks being accidentally interpreted as text selection.
         self.driver.execute_script("document.body.style['-webkit-user-select'] = 'none';")
 
