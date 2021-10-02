@@ -209,8 +209,8 @@ class TweetScraper:
         # for _, row in self.dataset.iterrows():
         for _, row in self.dataset.iterrows():
 
-            if row['url'] != 'https://twitter.com/cnnbrk/status/1337810503981264903':
-                continue
+            # if row['url'] != 'https://twitter.com/cnnbrk/status/1337810503981264903':
+            #     continue
 
             self.logger.info('Grabbing tweet from: %s' % row['url'])
             try:
