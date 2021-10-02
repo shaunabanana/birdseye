@@ -288,11 +288,12 @@ class TweetScraper:
                 if abandon:
                     self.logger.error('Error parsing the main tweet. Skipping this tweet.')
                     break
-                self.logger.info(
-                    'Parsed tweet by @%s: %s' % 
-                    (main_tweet['user_handle'], repr(main_tweet['content'][:40] + '...'))
-                )
-                self.add_parsed_tweet(main_tweet)
+                if main_tweet is not False:
+                    self.logger.info(
+                        'Parsed tweet by @%s: %s' % 
+                        (main_tweet['user_handle'], repr(main_tweet['content'][:40] + '...'))
+                    )
+                    self.add_parsed_tweet(main_tweet)
 
             # Otherwise, the tweet is a reply. By this time, we would have already had the main tweet.
             else:
