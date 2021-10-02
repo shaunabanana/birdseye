@@ -17,6 +17,7 @@ export default {
     drag: null,
     simulation: null,
     selection: new Set(),
+    clusterSize: [],
     tweets: [
       {id: 0, type: 'robot', cluster: 0, x: 200, y: 200, fx: 200, fy: 200},
       {id: 1, type: 'robot', cluster: 1, x: 500, y: 200, fx: 500, fy: 200},
@@ -127,6 +128,13 @@ export default {
   mounted () {
 
     this.drag = drag();
+
+    for (let tweet of this.tweets) {
+      if (tweet.type === 'tweet') {
+        if (!this.clusterSize[tweet.cluster]) this.clusterSize[tweet.cluster] = 0;
+        this.clusterSize[tweet.cluster] += 1;
+      }
+    }
     
     this.drawTweets();
     this.drawRobots();
@@ -183,7 +191,19 @@ export default {
 
       // Set robot repel radius based on whether the robot is grabbed
       this.simulation.force('collision')
-        .radius(d => d.type === 'robot' ? (this.selection.has(d.id) ? 120 : 40) : 20)
+        .radius(d => {
+          if (d.type === 'robot') {
+            if (this.selection.has(d.id)) {
+              // Make the selection a circle
+              let circumference = this.clusterSize[d.id] * 20 * 0.9 * 2;
+              return circumference / Math.PI / 2;
+            } else {
+              return 40;
+            }
+          } else {
+            return 20;
+          }
+        })
       this.simulation.alphaTarget(0.1).restart();
       
       event.stopPropagation();
