@@ -36,6 +36,9 @@ class TweetScraper:
 
         # Create a new Safari window
         self.driver = webdriver.Safari()
+        self.driver.maximize_window()
+        size = self.driver.get_window_size()
+        self.driver.set_window_size(800, size['height'])
         print(self.driver.get_window_size())
 
         self.dataset = pd.read_excel(dataset) if dataset is not None else None
@@ -207,112 +210,110 @@ class TweetScraper:
 
         return tweet, abandon
 
+    
+    def grab_one_tweet(self, row):
+        self.logger.info('Grabbing tweet from: %s' % row['url'])
+        try:
+            self.driver.get(row['url'])
+        except InvalidArgumentException:
+            self.logger.warning('%s is not a valid URL. Skipping.' % row['url'])
+            return
+        self.maintab = self.driver.current_window_handle
+
+        # Wait until the articles are loaded and available
+        self.sleep_until_loaded()
+
+        # Disable text selection to prevent clicks being accidentally interpreted as text selection.
+        self.driver.execute_script("document.body.style['-webkit-user-select'] = 'none';")
+
+        # Find the Timeline element
+        timeline = self.find_timeline()
+        self.logger.info('Successfully located the timeline.')
+
+        # Expand the replies for some rounds.
+        for i in range(self.expand):
+            self.expland_replies(timeline)
+            timeline = self.find_timeline()
+
+        # Finally grab the expanded elements in the timeline
+        self.driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.HOME)
+        self.sleep_between_interactions()
+        timeline = self.find_timeline()
+        elements = timeline.find_elements_by_xpath("./div/div")
+        self.logger.info('Found %d elements in the timeline' % len(elements))
+
+        self.logger.info('Parsing timeline elements...')
+
+        main_tweet = None
+
+        index = 0
+        while index < len(elements):
+            print(index, len(elements))
+            timeline = self.driver.find_element_by_xpath("//div[@aria-label='Timeline: Conversation']")
+            elements = timeline.find_elements_by_xpath("./div/div")
+            element = elements[index]
+            self.logger.debug("Element text: %s" % element.text)
+
+            if element.text == 'This Tweet is from a suspended account. Learn more':
+                self.logger.warning('Tweet author suspended. Skipping.')
+                break
+
+            index += 1
+
+            self.driver.execute_script('arguments[0].scrollIntoView({block: "center"});', element)
+            self.sleep_between_interactions()
+
+            # Skip empty elements (likely horizontal lines between tweets)
+            if element.text == '':
+                continue
+
+            # If the current row username is in the element text, this element contains the main tweet.
+            elif (element.text.startswith(row['user_name']) or '@' in element.text) and main_tweet is None:
+                main_tweet, abandon = self.parse_tweet_element(element)
+                if abandon:
+                    self.logger.error('Error parsing the main tweet. Skipping this tweet.')
+                    break
+                self.logger.info(
+                    'Parsed tweet by @%s: %s' % 
+                    (main_tweet['user_handle'], repr(main_tweet['content'][:40] + '...'))
+                )
+                self.add_parsed_tweet(main_tweet)
+
+            # Otherwise, the tweet is a reply. By this time, we would have already had the main tweet.
+            else:
+                # Skip deleted tweets and "show replies".
+                if  element.text == 'This Tweet was deleted by the Tweet author. Learn more' \
+                    or element.text == 'Show replies':
+                    self.logger.debug("Not a tweet. Skipping this element: %s" % repr(element.text))
+                    continue
+                
+                # When we reach "Show more replies" or "More Tweets", this is the end of our scraping.
+                elif element.text == 'Show more replies' or element.text == 'More Tweets':
+                    self.logger.debug("Reached the end of replies.")
+                    break
+
+                tweet, abandon = self.step_into_reply(self.driver.current_url, element, reply_to=main_tweet)
+
+                if tweet is not False:
+                    self.logger.info(
+                        'Parsed tweet by @%s: %s' % 
+                        (tweet['user_handle'], repr(tweet['content'][:40] + '...'))
+                    )
+                    self.add_parsed_tweet(tweet)
+
+                if abandon:
+                    self.logger.error('Abandoning this tweet.')
+                    break
+
 
     def grab_tweets(self):
         # for _, row in self.dataset.iterrows():
         for _, row in self.dataset.iterrows():
-
-            # if row['url'] != 'https://twitter.com/cnnbrk/status/1337810503981264903':
-            #     continue
-
-            self.logger.info('Grabbing tweet from: %s' % row['url'])
             try:
-                self.driver.get(row['url'])
-            except InvalidArgumentException:
-                self.logger.warning('%s is not a valid URL. Skipping.' % row['url'])
+                self.grab_one_tweet(row)
+            except Exception as e:
+                self.logger.critical('Unhandled exception: %s' % e)
                 continue
-            self.maintab = self.driver.current_window_handle
-
-            # Wait until the articles are loaded and available
-            self.sleep_until_loaded()
-
-            # Disable text selection to prevent clicks being accidentally interpreted as text selection.
-            self.driver.execute_script("document.body.style['-webkit-user-select'] = 'none';")
-
-            # Find the Timeline element
-            timeline = self.find_timeline()
-            self.logger.info('Successfully located the timeline.')
-
-            # Expand the replies for some rounds.
-            for i in range(self.expand):
-                self.expland_replies(timeline)
-                timeline = self.find_timeline()
-
-            # Finally grab the expanded elements in the timeline
-            self.driver.find_element_by_tag_name('body').send_keys(Keys.CONTROL + Keys.HOME)
-            self.sleep_between_interactions()
-            timeline = self.find_timeline()
-            elements = timeline.find_elements_by_xpath("./div/div")
-            self.logger.info('Found %d elements in the timeline' % len(elements))
-
-            self.logger.info('Parsing timeline elements...')
-
-            main_tweet = None
-
-            index = 0
-            while index < len(elements):
-                print(index, len(elements))
-                timeline = self.driver.find_element_by_xpath("//div[@aria-label='Timeline: Conversation']")
-                elements = timeline.find_elements_by_xpath("./div/div")
-                element = elements[index]
-                self.logger.debug("Element text: %s" % element.text)
-
-                if element.text == 'This Tweet is from a suspended account. Learn more':
-                    self.logger.warning('Tweet author suspended. Skipping.')
-                    break
-
-                index += 1
-
-                self.driver.execute_script('arguments[0].scrollIntoView({block: "center"});', element)
-                self.sleep_between_interactions()
-
-                # Skip empty elements (likely horizontal lines between tweets)
-                if element.text == '':
-                    continue
-
-                # If the current row username is in the element text, this element contains the main tweet.
-                elif (element.text.startswith(row['user_name']) or '@' in element.text) and main_tweet is None:
-                    main_tweet, abandon = self.parse_tweet_element(element)
-                    if abandon:
-                        self.logger.error('Error parsing the main tweet. Skipping this tweet.')
-                        break
-                    self.logger.info(
-                        'Parsed tweet by @%s: %s' % 
-                        (main_tweet['user_handle'], repr(main_tweet['content'][:40] + '...'))
-                    )
-                    self.add_parsed_tweet(main_tweet)
-
-                # Otherwise, the tweet is a reply. By this time, we would have already had the main tweet.
-                else:
-                    # Skip deleted tweets and "show replies".
-                    if  element.text == 'This Tweet was deleted by the Tweet author. Learn more' \
-                        or element.text == 'Show replies':
-                        self.logger.debug("Not a tweet. Skipping this element: %s" % repr(element.text))
-                        continue
-                    
-                    # When we reach "Show more replies" or "More Tweets", this is the end of our scraping.
-                    elif element.text == 'Show more replies' or element.text == 'More Tweets':
-                        self.logger.debug("Reached the end of replies.")
-                        break
-
-                    tweet, abandon = self.step_into_reply(self.driver.current_url, element, reply_to=main_tweet)
-
-                    if tweet is not False:
-                        self.logger.info(
-                            'Parsed tweet by @%s: %s' % 
-                            (tweet['user_handle'], repr(tweet['content'][:40] + '...'))
-                        )
-                        self.add_parsed_tweet(tweet)
-
-                    if abandon:
-                        self.logger.error('Abandoning this tweet.')
-                        break
-                # images = piece.find_elements_by_xpath(".//div/div/div/div/div/div/div//img")
-                # for image in images:
-                #     source = image.get_attribute('src')
-                #     self.logger.debug('Found image with src: %s' % source)
-                #     if 'profile_images' in source:
-                #         tweet['profile'] = image
             
         self.driver.quit()
 
