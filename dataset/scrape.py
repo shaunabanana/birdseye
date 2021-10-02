@@ -259,6 +259,7 @@ class TweetScraper:
                 if main_tweet is None:
                     break
                 else:
+                    index += 1
                     continue
 
             index += 1
