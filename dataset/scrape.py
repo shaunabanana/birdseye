@@ -256,7 +256,10 @@ class TweetScraper:
 
             if element.text == 'This Tweet is from a suspended account. Learn more':
                 self.logger.warning('Tweet author suspended. Skipping.')
-                continue
+                if main_tweet is None:
+                    break
+                else:
+                    continue
 
             index += 1
 
