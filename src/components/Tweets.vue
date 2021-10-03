@@ -1,180 +1,51 @@
 <template>
-  <svg class="tweets" ref="tweets">
-  </svg>
+  <div class="tweets" ref="tweets">
+    <div v-for="node in nodes" :key="node.id"
+      :class="node.type"
+      :style="{
+        'background-image': `url(${node.avatar})`,
+        'transform': `translate(${node.x}px, ${node.y}px) scale(1.0)`
+      }"
+    >
+    </div>
+
+  </div>
 </template>
 
 <script>
 import * as d3 from "d3";
-// import { forceCluster } from 'd3-force-cluster'
-import { drag } from 'd3-drag'
+// import { drag } from 'd3-drag'
 import { forceAttract } from 'd3-force-attract'
+import DataLoader from "../dataloader"
 
 export default {
   name: 'Tweets',
-  components: {
-  },
+  components: {},
+
   data: () => ({
     drag: null,
     simulation: null,
     selection: new Set(),
     clusterSize: [],
-    tweets: [
-      {id: 0, type: 'robot', cluster: 0, x: 200, y: 200, fx: 200, fy: 200},
-      {id: 1, type: 'robot', cluster: 1, x: 500, y: 200, fx: 500, fy: 200},
-      {id: 2, type: 'robot', cluster: 2, x: 200, y: 500, fx: 200, fy: 500},
-      {id: 3, type: 'robot', cluster: 3, x: 500, y: 500, fx: 500, fy: 500},
-      
-      {id: 4, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 7, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 8, type: 'tweet', text: 'Ca va bien', cluster: 1},
-      {id: 10, type: 'tweet', text: 'Comment ca va?', cluster: 1},
-      {id: 11, type: 'tweet', text: 'Bonjour!', cluster: 1},
-      {id: 12, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 15, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 17, type: 'tweet', text: 'Ciao!', cluster: 3},
-
-      {id: 4, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 5, type: 'tweet', text: 'Hi!', cluster: 0},
-      {id: 6, type: 'tweet', text: 'Yo!', cluster: 0},
-      {id: 7, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 8, type: 'tweet', text: 'Ca va bien', cluster: 1},
-      {id: 9, type: 'tweet', text: 'Bon journee!', cluster: 1},
-      {id: 10, type: 'tweet', text: 'Comment ca va?', cluster: 1},
-      {id: 11, type: 'tweet', text: 'Bonjour!', cluster: 1},
-      {id: 12, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 15, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 17, type: 'tweet', text: 'Ciao!', cluster: 3},
-
-      {id: 4, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 5, type: 'tweet', text: 'Hi!', cluster: 0},
-      {id: 6, type: 'tweet', text: 'Yo!', cluster: 0},
-      {id: 7, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 8, type: 'tweet', text: 'Ca va bien', cluster: 1},
-      {id: 9, type: 'tweet', text: 'Bon journee!', cluster: 1},
-      {id: 10, type: 'tweet', text: 'Comment ca va?', cluster: 1},
-      {id: 11, type: 'tweet', text: 'Bonjour!', cluster: 1},
-      {id: 12, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 15, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 17, type: 'tweet', text: 'Ciao!', cluster: 3},
-      {id: 18, type: 'tweet', text: 'Ciao!', cluster: 3},
-      {id: 19, type: 'tweet', text: 'Ciao!', cluster: 3},
-      {id: 20, type: 'tweet', text: 'Ciao!', cluster: 3},
-
-      {id: 4, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 7, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 8, type: 'tweet', text: 'Ca va bien', cluster: 1},
-      {id: 10, type: 'tweet', text: 'Comment ca va?', cluster: 1},
-      {id: 11, type: 'tweet', text: 'Bonjour!', cluster: 1},
-      {id: 12, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 15, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 17, type: 'tweet', text: 'Ciao!', cluster: 3},
-
-      {id: 4, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 5, type: 'tweet', text: 'Hi!', cluster: 0},
-      {id: 6, type: 'tweet', text: 'Yo!', cluster: 0},
-      {id: 7, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 8, type: 'tweet', text: 'Ca va bien', cluster: 1},
-      {id: 9, type: 'tweet', text: 'Bon journee!', cluster: 1},
-      {id: 10, type: 'tweet', text: 'Comment ca va?', cluster: 1},
-      {id: 11, type: 'tweet', text: 'Bonjour!', cluster: 1},
-      {id: 12, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 15, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 17, type: 'tweet', text: 'Ciao!', cluster: 3},
-
-      {id: 4, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 5, type: 'tweet', text: 'Hi!', cluster: 0},
-      {id: 6, type: 'tweet', text: 'Yo!', cluster: 0},
-      {id: 7, type: 'tweet', text: 'Hello!', cluster: 0},
-      {id: 8, type: 'tweet', text: 'Ca va bien', cluster: 1},
-      {id: 9, type: 'tweet', text: 'Bon journee!', cluster: 1},
-      {id: 10, type: 'tweet', text: 'Comment ca va?', cluster: 1},
-      {id: 11, type: 'tweet', text: 'Bonjour!', cluster: 1},
-      {id: 12, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 13, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 14, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 15, type: 'tweet', text: 'Hola!', cluster: 2},
-      {id: 17, type: 'tweet', text: 'Ciao!', cluster: 3},
-      {id: 18, type: 'tweet', text: 'Ciao!', cluster: 3},
-      {id: 19, type: 'tweet', text: 'Ciao!', cluster: 3},
-      {id: 20, type: 'tweet', text: 'Ciao!', cluster: 3},
-    ],
+    nodes: [],
 
     robots: [
-      {id: 0, cluster: 0, x: 200, y: 200, fx: 200, fy: 200, angle: 0},
-      {id: 1, cluster: 1, x: 500, y: 200, fx: 500, fy: 200, angle: 0},
-      {id: 2, cluster: 2, x: 200, y: 500, fx: 200, fy: 500, angle: 0},
-      {id: 3, cluster: 3, x: 500, y: 500, fx: 500, fy: 500, angle: 0},
+      { id: '0', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+      { id: '1', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+      { id: '2', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+      { id: '3', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
     ]
   }),
 
   mounted () {
-
-    this.drag = drag();
-
-    for (let tweet of this.tweets) {
-      if (tweet.type === 'tweet') {
-        if (!this.clusterSize[tweet.cluster]) this.clusterSize[tweet.cluster] = 0;
-        this.clusterSize[tweet.cluster] += 1;
-      }
-    }
-    
-    this.drawTweets();
-    this.drawRobots();
-    this.startSimulation();
-
-    window.addEventListener('keypress', this.updateSimulation.bind(this))
+    this.dataLoader = new DataLoader('./dataset');
+    this.dataLoader.loadData(tweets => {
+      this.nodes = this.robots.concat(tweets);
+      this.startSimulation();
+    });
   },
 
   methods: {
-
-    drawTweets() {
-      d3.select(this.$refs.tweets)
-        .selectAll('circle')
-        .data(this.tweets)
-        .enter()
-        .append('circle')
-        .attr('r', 15)
-        .attr('fill', d => d.type === 'robot' ? 'white' : 'gray');
-    },
-
-    drawRobots() {
-      d3.select(this.$refs.tweets)
-        .selectAll('rect')
-        .data(this.robots)
-        .enter()
-        .append('rect')
-        .attr('id', d => d.id)
-        .attr('style', 'cursor: grab;')
-        .attr('x', d => d.x - 25)
-        .attr('y', d => d.y - 25)
-        .attr('width', 50)
-        .attr('height', 50)
-        .attr('fill', 'white')
-        .on('click', this.robotClicked.bind(this))
-        .call(d3.drag()
-          // .on("start", (event, d) => circle.filter(p => p === d).raise().attr("stroke", "black"))
-          .on("drag", (event, d) => (d.x = event.x, d.y = event.y))
-          // .on("end", (event, d) => circle.filter(p => p === d).attr("stroke", null))
-          .on("start.update drag.update end.update", this.updateSimulation.bind(this)));
-    },
 
     robotClicked(event) {
       let robotId = Number.parseInt(d3.select(event.target).attr('id'));
@@ -210,23 +81,21 @@ export default {
     },
 
     startSimulation() {
-      this.simulation = d3.forceSimulation(this.tweets)
+      this.simulation = d3.forceSimulation(this.nodes)
         // Prevent overlapping nodes.
         .force('collision', d3.forceCollide()
-          .radius(d => d.type === 'robot' ? 40 : 20))
+          .radius(d => d.type === 'robot' ? 80 : 40))
         
-        // A clustering force towards the robot.
+        // A clustering force towards the center of the screen.
         .force('cluster', forceAttract()
-          .target(d => {
-            return [this.robots[d.cluster].x, this.robots[d.cluster].y]
+          .target(() => {
+            return [500, 500]
           })
-          .strength(() => 0.2 + (Math.random() * 0.1 - 0.05))
+          .strength(() => 0.05 + (Math.random() * 0.1 - 0.05))
         )
 
         .on('tick', () => {
-          d3.selectAll('circle')
-            .attr('cx', d => d.x)
-            .attr('cy', d => d.y)
+          this.nodes = this.nodes.map(v => v);
         });
     },
 
@@ -245,12 +114,6 @@ export default {
       // Reset alpha and restart simulation
       this.simulation.alphaTarget(0.1).restart();
 
-      // Update robot positions
-      d3.select(this.$refs.tweets)
-        .selectAll('rect')
-        .attr('x', d => d.x - 25)
-        .attr('y', d => d.y - 25)
-
     }
 
   }
@@ -258,7 +121,7 @@ export default {
 </script>
 
 
-<style scoped>
+<style>
 
 .tweets {
   width: 100%;
@@ -267,6 +130,27 @@ export default {
 
 .robot {
   cursor: pointer;
+}
+
+.tweet {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  left: -25px;
+  top: -25px;
+  background-size: 50px 50px;
+  border-radius: 25px;
+  overflow: hidden;
+}
+
+.robot {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  left: -50px;
+  top: -50px;
+  background: white;
+  overflow: hidden;
 }
 
 </style>

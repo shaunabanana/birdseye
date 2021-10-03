@@ -19,7 +19,7 @@ export default {
 
 
   data: () => ({
-    mapping: false
+    mapping: false,
   }),
 
   mounted () {
