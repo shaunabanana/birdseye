@@ -17,6 +17,7 @@ import * as d3 from "d3";
 // import { drag } from 'd3-drag'
 import { forceAttract } from 'd3-force-attract'
 import DataLoader from "../dataloader"
+import Clusterer from "../clustering"
 
 export default {
   name: 'Tweets',
@@ -28,6 +29,7 @@ export default {
     selection: new Set(),
     clusterSize: [],
     nodes: [],
+    tweets: [],
 
     robots: [
       { id: '0', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
@@ -41,8 +43,12 @@ export default {
     this.dataLoader = new DataLoader('./dataset');
     this.dataLoader.loadData(tweets => {
       this.nodes = this.robots.concat(tweets);
+      this.tweets = tweets;
       this.startSimulation();
+      this.clusterer.cluster(this.tweets, 4);
     });
+
+    this.clusterer = new Clusterer();
   },
 
   methods: {

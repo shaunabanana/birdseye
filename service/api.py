@@ -1,4 +1,5 @@
 from flask import Flask, request
+from flask_cors import CORS
 from flask_restful import Resource, Api
 
 import json
@@ -8,14 +9,16 @@ from scipy.cluster.hierarchy import fcluster
 
 
 app = Flask(__name__)
+CORS(app)
+
 api = Api(app)
 
 
 class Cluster(Resource):
     def put(self, clusters):
-        print(request.form['data'])
         # Parse the data into a large vector
-        tweets = json.loads(request.form['data'])
+        tweets = json.loads(request.data)
+        print(tweets)
         vectors = []
         for tweet in tweets:
             vectors.append(tweet['vector'])
