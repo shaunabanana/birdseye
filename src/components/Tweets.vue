@@ -4,7 +4,7 @@
       :class="node.type"
       :style="{
         'background-image': `url(${node.avatar})`,
-        'transform': `translate(${node.x}px, ${node.y}px) scale(1.0)`
+        'transform': `translate(${node.x}px, ${node.y}px) scale(1.0) rotate(${node.angle ? node.angle : 0}deg)`
       }"
     >
     </div>
@@ -22,6 +22,9 @@ import Clusterer from "../clustering"
 export default {
   name: 'Tweets',
   components: {},
+  props: {
+    robots: Array,
+  },
 
   data: () => ({
     drag: null,
@@ -31,12 +34,12 @@ export default {
     nodes: [],
     tweets: [],
 
-    robots: [
-      { id: '0', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
-      { id: '1', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
-      { id: '2', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
-      { id: '3', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
-    ]
+    // robots: [
+    //   { id: '0', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+    //   { id: '1', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+    //   { id: '2', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+    //   { id: '3', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
+    // ]
   }),
 
   mounted () {
@@ -51,40 +54,16 @@ export default {
     this.clusterer = new Clusterer();
   },
 
-  methods: {
-
-    robotClicked(event) {
-      let robotId = Number.parseInt(d3.select(event.target).attr('id'));
-      // let robot = this.robots[robotId];
-      
-      if (this.selection.has(robotId)) {
-        d3.select(event.target).attr('fill', 'white');
-        this.selection.delete(robotId);
-
-      } else {
-        d3.select(event.target).attr('fill', 'cyan');
-        this.selection.add(robotId);
+  watch: {
+    robots: {
+      deep: true,
+      handler () {
+        this.restartSimulation();
       }
+    }
+  },
 
-      // Set robot repel radius based on whether the robot is grabbed
-      this.simulation.force('collision')
-        .radius(d => {
-          if (d.type === 'robot') {
-            if (this.selection.has(d.id)) {
-              // Make the selection a circle
-              let circumference = this.clusterSize[d.id] * 20 * 0.9 * 2;
-              return circumference / Math.PI / 2;
-            } else {
-              return 40;
-            }
-          } else {
-            return 20;
-          }
-        })
-      this.simulation.alphaTarget(0.1).restart();
-      
-      event.stopPropagation();
-    },
+  methods: {
 
     startSimulation() {
       this.simulation = d3.forceSimulation(this.nodes)
@@ -97,7 +76,7 @@ export default {
           .target(() => {
             return [500, 500]
           })
-          .strength(() => 0.05 + (Math.random() * 0.1 - 0.05))
+          .strength(d => d.type === 'robot' ? 0 : 0.05 + (Math.random() * 0.1 - 0.05))
         )
 
         .on('tick', () => {
@@ -105,21 +84,12 @@ export default {
         });
     },
 
-    updateSimulation() {
-      // Update data. This is just code for testing.
-      // The robot positions should come from TOIO.
-      for (let i in this.robots) {
-        this.tweets[i].fx = this.robots[i].x;
-        this.tweets[i].fy = this.robots[i].y;
-      }
-
+    restartSimulation() {
       // Update cluster locations
-      this.simulation.force('cluster')
-        .target(d => [this.robots[d.cluster].x, this.robots[d.cluster].y])
-
+      // this.simulation.force('cluster')
+      //   .target(d => [this.robots[d.cluster].x, this.robots[d.cluster].y])
       // Reset alpha and restart simulation
-      this.simulation.alphaTarget(0.1).restart();
-
+      if (this.simulation) this.simulation.alphaTarget(0.1).restart();
     }
 
   }
