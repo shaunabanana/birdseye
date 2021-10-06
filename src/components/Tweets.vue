@@ -1,13 +1,15 @@
 <template>
   <div class="tweets" ref="tweets">
-    <div v-for="node in nodes" :key="node.id"
+    <!-- <div v-for="node in nodes" :key="node.id"
       :class="node.type"
       :style="{
         'background-image': `url(${node.avatar})`,
         'transform': `translate(${node.x}px, ${node.y}px) scale(1.0) rotate(${node.angle ? node.angle : 0}deg)`
       }"
     >
-    </div>
+    </div> -->
+    <tweet :avatar="tweets[0].avatar" :content="tweets[0].content" style="transform: translate(100px, 100px)"
+      :browsing="true" :selected="true"/>
 
   </div>
 </template>
@@ -19,9 +21,11 @@ import { forceAttract } from 'd3-force-attract'
 import DataLoader from "../dataloader"
 import Clusterer from "../clustering"
 
+import Tweet from "./Tweet"
+
 export default {
   name: 'Tweets',
-  components: {},
+  components: {Tweet},
   props: {
     robots: Array,
   },

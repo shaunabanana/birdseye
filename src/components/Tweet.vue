@@ -3,14 +3,21 @@
   <div class="tweet" ref="tweet">
     <div 
       class="avatar"
+      :class="{
+        selected: selected,
+        browsing: browsing,
+        shrinked: shrinked,
+        related: related
+      }"
       :style="{
-        'background-image': `url(${node.avatar})`,
+        'background-image': `url(${avatar})`,
       }"
     >
     </div>
 
-    <div v-if="seleted" class="content" :style="contentBackground">
-      {{tweetContent}}
+    <div class="content" 
+        :style="{ opacity:selected ? 1:0 }">
+      {{detailed ? content : content.slice(0, 80)}}
     </div>
 
   </div>
@@ -21,7 +28,7 @@
 export default {
   name: 'Tweet',
   components: {},
-  props: ['tweetContent'],
+  props: ['avatar', 'selected', 'browsing', 'shrinked', 'related', 'content', 'detailed'],
 
   data: () => ({
     drag: null,
@@ -32,83 +39,10 @@ export default {
   }),
 
   mounted () {
-    this.dataLoader = new DataLoader('./dataset');
-    this.dataLoader.loadData(tweets => {
-      this.nodes = this.robots.concat(tweets);
-      this.startSimulation();
-    });
+    
   },
 
   methods: {
-
-    robotClicked(event) {
-      let robotId = Number.parseInt(d3.select(event.target).attr('id'));
-      // let robot = this.robots[robotId];
-      
-      if (this.selection.has(robotId)) {
-        d3.select(event.target).attr('fill', 'white');
-        this.selection.delete(robotId);
-
-      } else {
-        d3.select(event.target).attr('fill', 'cyan');
-        this.selection.add(robotId);
-      }
-
-      // Set robot repel radius based on whether the robot is grabbed
-      this.simulation.force('collision')
-        .radius(d => {
-          if (d.type === 'robot') {
-            if (this.selection.has(d.id)) {
-              // Make the selection a circle
-              let circumference = this.clusterSize[d.id] * 20 * 0.9 * 2;
-              return circumference / Math.PI / 2;
-            } else {
-              return 40;
-            }
-          } else {
-            return 20;
-          }
-        })
-      this.simulation.alphaTarget(0.1).restart();
-      
-      event.stopPropagation();
-    },
-
-    startSimulation() {
-      this.simulation = d3.forceSimulation(this.nodes)
-        // Prevent overlapping nodes.
-        .force('collision', d3.forceCollide()
-          .radius(d => d.type === 'robot' ? 80 : 40))
-        
-        // A clustering force towards the center of the screen.
-        .force('cluster', forceAttract()
-          .target(() => {
-            return [500, 500]
-          })
-          .strength(() => 0.05 + (Math.random() * 0.1 - 0.05))
-        )
-
-        .on('tick', () => {
-          this.nodes = this.nodes.map(v => v);
-        });
-    },
-
-    updateSimulation() {
-      // Update data. This is just code for testing.
-      // The robot positions should come from TOIO.
-      for (let i in this.robots) {
-        this.tweets[i].fx = this.robots[i].x;
-        this.tweets[i].fy = this.robots[i].y;
-      }
-
-      // Update cluster locations
-      this.simulation.force('cluster')
-        .target(d => [this.robots[d.cluster].x, this.robots[d.cluster].y])
-
-      // Reset alpha and restart simulation
-      this.simulation.alphaTarget(0.1).restart();
-
-    }
 
   }
 }
@@ -165,8 +99,6 @@ export default {
 
 .content {
   width: 100px; 
-  height: 400px; /* flexible */
-  background-size: 50px 50px;  /* 和上面长宽的区别是？ */
   background-color: #333333;
   opacity: 0.2;
   border-radius: 6%; 
