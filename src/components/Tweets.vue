@@ -13,7 +13,7 @@
 <script>
 import * as d3 from "d3";
 import { forceAttract } from 'd3-force-attract'
-const Victor = require('victor');
+const Vector = require('victor');
 
 export default {
   name: 'Tweets',
@@ -89,12 +89,12 @@ export default {
           else if (d.cluster === -1) return [0, 0];
 
           let robot = this.robots[d.cluster];
-          let robotPos = Victor(robot.x, robot.y);
+          let robotPos = Vector(robot.x, robot.y);
           let radius = this.clusterSizes[d.cluster] * 55 / Math.PI / 2;
 
-          let deltaPos = Victor(d.x, d.y).subtract(robotPos).norm();
+          let deltaPos = Vector(d.x, d.y).subtract(robotPos).norm();
 
-          let target = deltaPos.multiply(Victor(radius, radius)).add(robotPos);
+          let target = deltaPos.multiply(Vector(radius, radius)).add(robotPos);
           
           return [target.x, target.y];
         })

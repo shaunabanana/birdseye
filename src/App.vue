@@ -13,7 +13,7 @@
 </template>
 
 <script>
-const Victor = require('victor');
+const Vector = require('victor');
 
 import ProjectionMapper from "./components/ProjectionMapper";
 import Tweets from "./components/Tweets";
@@ -145,6 +145,12 @@ export default {
       this.$refs.tweets.updateForces();
     },
 
+    onToioLink (event) {
+      let from = this.getRobotByName(event.from);
+      let to = this.getRobotByName(event.to);
+      console.log(from, to);
+    },
+
     // (Re)cluster tweets according to current number of active & unlocked robots
     clusterTweets () {
       this.clusterer.cluster(this.activeRobots, this.activeTweets, this.numClusters).then(result => {
@@ -206,11 +212,11 @@ export default {
       this.robots.forEach( robot => {
         if (!robot.active || !robot.expanded) return;
         let tweets = this.tweets.filter( tweet => tweet.cluster === robot.cluster);
-        let robotPos = Victor(robot.x, robot.y);
-        let robotAngle = Victor(0, 1).rotateDeg(robot.angle).angleDeg();
+        let robotPos = Vector(robot.x, robot.y);
+        let robotAngle = Vector(0, 1).rotateDeg(robot.angle).angleDeg();
         
         let angles = tweets.map(tweet => {
-          let angle = Victor(tweet.x, tweet.y).subtract(robotPos).angleDeg();
+          let angle = Vector(tweet.x, tweet.y).subtract(robotPos).angleDeg();
           return Math.abs(angle - robotAngle);
         });
         
