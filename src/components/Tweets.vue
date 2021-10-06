@@ -5,10 +5,8 @@
       :style="{
         'background-image': `url(${node.avatar})`,
         'transform': `translate(${node.x}px, ${node.y}px) scale(1.0) rotate(${node.angle ? node.angle : 0}deg)`
-      }"
-    >
+      }">
     </div>
-
   </div>
 </template>
 
@@ -16,14 +14,13 @@
 import * as d3 from "d3";
 // import { drag } from 'd3-drag'
 import { forceAttract } from 'd3-force-attract'
-import DataLoader from "../dataloader"
-import Clusterer from "../clustering"
 
 export default {
   name: 'Tweets',
   components: {},
   props: {
     robots: Array,
+    tweets: Array
   },
 
   data: () => ({
@@ -32,7 +29,7 @@ export default {
     selection: new Set(),
     clusterSize: [],
     nodes: [],
-    tweets: [],
+    clusterReady: false
 
     // robots: [
     //   { id: '0', type: 'robot', x: 0, y: 0, fx: 100, fy: 100 },
@@ -43,23 +40,29 @@ export default {
   }),
 
   mounted () {
-    this.dataLoader = new DataLoader('./dataset');
-    this.dataLoader.loadData(tweets => {
-      this.nodes = this.robots.concat(tweets);
-      this.tweets = tweets;
-      this.startSimulation();
-      this.clusterer.cluster(this.tweets, 4);
-    });
+    // this.dataLoader = new DataLoader('./dataset');
+    // this.dataLoader.loadData(tweets => {
+    //   this.nodes = this.robots.concat(tweets);
+    //   this.tweets = tweets;
+    //   this.startSimulation();
+    //   this.clusterer.cluster(this.tweets, 4);
+    // });
 
-    this.clusterer = new Clusterer();
+    // this.clusterer = new Clusterer();
   },
 
   watch: {
     robots: {
       deep: true,
       handler () {
+        // this.simulation.data(this.robots);
         this.restartSimulation();
       }
+    },
+
+    tweets () {
+      this.nodes = this.robots.concat(this.tweets);
+      this.startSimulation();
     }
   },
 
@@ -69,14 +72,14 @@ export default {
       this.simulation = d3.forceSimulation(this.nodes)
         // Prevent overlapping nodes.
         .force('collision', d3.forceCollide()
-          .radius(d => d.type === 'robot' ? 80 : 40))
+          .radius(d => d.type === 'robot' ? (d.active ? 65 : 65) : 25))
         
         // A clustering force towards the center of the screen.
         .force('cluster', forceAttract()
           .target(() => {
-            return [500, 500]
+            return [(window.innerHeight * 1.414) / 2, window.innerHeight / 2]
           })
-          .strength(d => d.type === 'robot' ? 0 : 0.05 + (Math.random() * 0.1 - 0.05))
+          .strength(d => d.type === 'robot' ? 0 : 0.02 + (Math.random() * 0.03 - 0.015))
         )
 
         .on('tick', () => {
@@ -84,10 +87,16 @@ export default {
         });
     },
 
-    restartSimulation() {
+    updateClusterForces() {
       // Update cluster locations
-      // this.simulation.force('cluster')
-      //   .target(d => [this.robots[d.cluster].x, this.robots[d.cluster].y])
+      this.simulation.force('cluster')
+        .target(d => [this.robots[d.cluster].x, this.robots[d.cluster].y])
+        .strength(d => d.type === 'robot' ? 0 : 0.07 + (Math.random() * 0.1 - 0.05))
+      this.clusterReady = true;
+    },
+
+    restartSimulation() {
+      if (this.clusterReady) this.updateClusterForces();
       // Reset alpha and restart simulation
       if (this.simulation) this.simulation.alphaTarget(0.1).restart();
     }
@@ -99,34 +108,38 @@ export default {
 
 <style>
 
+:root {
+  --scale: 1.0;
+}
+
 .tweets {
   width: 100%;
   height: 100%;
 }
 
-.robot {
+/* .robot {
   cursor: pointer;
-}
+} */
 
 .tweet {
   position: absolute;
-  width: 50px;
-  height: 50px;
-  left: -25px;
-  top: -25px;
-  background-size: 50px 50px;
+  width: calc(var(--scale) * 30px);
+  height: calc(var(--scale) * 30px);
+  left: calc(var(--scale) * -15px);
+  top: calc(var(--scale) * -15px);
+  background-size: calc(var(--scale) * 30px) calc(var(--scale) * 30px);
   border-radius: 25px;
   overflow: hidden;
 }
 
-.robot {
+/* .robot {
   position: absolute;
-  width: 100px;
-  height: 100px;
-  left: -50px;
-  top: -50px;
+  width: calc(var(--scale) * 60px);
+  height: calc(var(--scale) * 60px);
+  left: calc(var(--scale) * -30px);
+  top: calc(var(--scale) * -30px);
   background: white;
-  overflow: hidden;
-}
+  overflow: visible;
+} */
 
 </style>
