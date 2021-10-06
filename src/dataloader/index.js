@@ -10,30 +10,42 @@ export default class DataLoader {
         this.index = path.join(datasetPath, 'index.json');
     }
 
-    loadData(callback) {
-        axios.get(this.index).then(response => {
+    loadData() {
+        return new Promise( (resolve, reject) => {
+            axios.get(this.index)
+            .then(response => {
+                console.log(response.data);
+                let tweets = response.data.map( tweetData => {
+                    return {
+                        id: tweetData.id,
+                        type: 'tweet',
+                        name: tweetData.user_name,
+                        handle: tweetData.user_handle,
+                        content: tweetData.content,
+                        parsed: tweetData.parsed,
+                        vector: tweetData.vector,
+                        sentiment: tweetData.sentiment,
+                        avatar: path.join(this.base, 'avatars', tweetData.avatar),
+                        x: Math.random() * window.innerWidth, 
+                        y: Math.random() * window.innerHeight,
+                        cluster: -1
+                    }
+                } )
 
-            console.log(response.data);
-            let tweets = response.data.map( tweetData => {
-                return {
-                    id: tweetData.id,
-                    type: 'tweet',
-                    name: tweetData.user_name,
-                    handle: tweetData.user_handle,
-                    content: tweetData.content,
-                    vector: tweetData.vector,
-                    sentiment: tweetData.sentiment,
-                    avatar: path.join(this.base, 'avatars', tweetData.avatar),
-                    x: 0, y: 0,
-                    cluster: Math.ceil(Math.random() * 4)
-                }
-            } )
-
-            // for (let tweet of response.data) {
-            //     if (tweet.)
-            // }
-            callback(tweets.slice(0, 150));
-        })
+                tweets.forEach(tweet => {
+                    tweet.replies = [];
+                    response.data.forEach( otherTweet => {
+                        if (otherTweet.reply_to === tweet.id) {
+                            tweet.replies.push(otherTweet.id);
+                        }
+                    })
+                })
+                resolve(tweets.filter(tweet => tweet.replies.length > 0 || tweet.reply_to));
+            })
+            .catch(response => {
+                reject(response);
+            })
+        });
     }
 
 }

@@ -7,7 +7,10 @@ export default class ToioConnector {
         this.websocket.onmessage = this.parseMessage.bind(this);
 
         this.onConnect = null;
+        this.onActivate = null;
+        this.onDeactivate = null;
         this.onMove = null;
+        this.onExpand = null;
         this.onLink = null;
         this.onDump = null;
         this.onDisconnect = null;
@@ -21,15 +24,23 @@ export default class ToioConnector {
         let message = JSON.parse(packet.data)
         if (message.event === 'toio:connect') {
             if (this.onConnect) this.onConnect(message);
+        } else if (message.event === 'toio:activate') {
+            if (this.onActivate) this.onActivate(message);
+        } else if (message.event === 'toio:deactivate') {
+            if (this.onDeactivate) this.onDeactivate(message);
         } else if (message.event === 'toio:move') {
             if (this.onMove) this.onMove(message);
+        } else if (message.event === 'toio:expand') {
+            if (this.onExpand) this.onExpand(message);
         } else if (message.event === 'toio:link') {
             if (this.onLink) this.onLink(message);
         } else if (message.event === 'toio:dump') {
             if (this.onDump) this.onDump(message);
         } else if (message.event === 'toio:disconnect') {
             if (this.onDisconnect) this.onDisconnect(message);
-        }
+        } else if (message.event === 'toio:reset') {
+            window.location.reload(true); 
+        } 
     }
 
 }
