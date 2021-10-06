@@ -10,6 +10,7 @@ export default class ToioConnector {
         this.onActivate = null;
         this.onDeactivate = null;
         this.onMove = null;
+        this.onExpand = null;
         this.onLink = null;
         this.onDump = null;
         this.onDisconnect = null;
@@ -29,6 +30,8 @@ export default class ToioConnector {
             if (this.onDeactivate) this.onDeactivate(message);
         } else if (message.event === 'toio:move') {
             if (this.onMove) this.onMove(message);
+        } else if (message.event === 'toio:expand') {
+            if (this.onExpand) this.onExpand(message);
         } else if (message.event === 'toio:link') {
             if (this.onLink) this.onLink(message);
         } else if (message.event === 'toio:dump') {

@@ -1,11 +1,11 @@
 <template>
   <div class="app" @click.stop="mapping = false">
     <projection-mapper :focused="mapping" @click.stop="mapping = !mapping">
-      <tweets :robots="robots" :tweets="tweets" ref="tweets"/>
+      <tweets ref="tweets" :robots="robots" :tweets="tweets" :selected="selectedTweets"/>
 
       <robot v-for="robot in robots" :key="robot.id"
         :x="robot.x" :y="robot.y" :angle="robot.angle" :keywords="robot.keywords"
-        :locked="robot.locked"
+        :locked="robot.locked" :expanded="robot.expanded"
         :style="{ opacity: robot.active ? 1 : 0 }"/>
       
     </projection-mapper>
@@ -13,6 +13,8 @@
 </template>
 
 <script>
+const Victor = require('victor');
+
 import ProjectionMapper from "./components/ProjectionMapper";
 import Tweets from "./components/Tweets";
 import Robot from "./components/Robot";
@@ -68,6 +70,7 @@ export default {
     this.toio.onActivate = this.onToioActivate.bind(this);
     this.toio.onDeactivate = this.onToioDeactivate.bind(this);
     this.toio.onMove = this.onToioMove.bind(this);
+    this.toio.onExpand = this.onToioExpand.bind(this);
     this.toio.onDump = this.onToioDump.bind(this);
 
     this.loader = new DataLoader('./dataset');
@@ -108,7 +111,7 @@ export default {
     onToioDeactivate (event) {
       let robot = this.getRobotByName(event.cube);
       robot.active = false;
-      this.$refs.tweets.updateClusterForces();
+      this.$refs.tweets.updateForces();
     },
 
     onToioMove (event) {
@@ -119,7 +122,14 @@ export default {
       }
       robot.x = robot.fx = event.x;
       robot.y = robot.fy = event.y;
+      robot.deltaAngle = event.angle - robot.angle;
       robot.angle = event.angle;
+    },
+
+    onToioExpand (event) {
+      let robot = this.getRobotByName(event.cube);
+      robot.expanded = !robot.expanded;
+      console.log('Expand', robot);
     },
 
     onToioDump (event) {
@@ -132,7 +142,7 @@ export default {
         }
       });
       to.locked = true;
-      this.$refs.tweets.updateClusterForces();
+      this.$refs.tweets.updateForces();
     },
 
     // (Re)cluster tweets according to current number of active & unlocked robots
@@ -144,7 +154,7 @@ export default {
           // let robot = this.activeRobots[result.labels[i] - 1];
           tweet.cluster = result[i]; 
         })
-        this.$refs.tweets.updateClusterForces();
+        this.$refs.tweets.updateForces();
 
         this.clusterer.keyword(this.tweets).then(result => {
           for (let index of Object.keys(result)) {
@@ -190,6 +200,25 @@ export default {
       });
       return clustering;
     },
+
+    selectedTweets () {
+      let selected = [];
+      this.robots.forEach( robot => {
+        if (!robot.active || !robot.expanded) return;
+        let tweets = this.tweets.filter( tweet => tweet.cluster === robot.cluster);
+        let robotPos = Victor(robot.x, robot.y);
+        let robotAngle = Victor(0, 1).rotateDeg(robot.angle).angleDeg();
+        
+        let angles = tweets.map(tweet => {
+          let angle = Victor(tweet.x, tweet.y).subtract(robotPos).angleDeg();
+          return Math.abs(angle - robotAngle);
+        });
+        
+        let selectedIndex = angles.indexOf(Math.min(...angles));
+        selected.push(tweets[selectedIndex].id);
+      });
+      return selected;
+    }
   }
 };
 </script>

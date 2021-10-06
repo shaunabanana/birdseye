@@ -4,6 +4,7 @@
     'transform': `translate(${x}px, ${y}px) scale(1.0) rotate(${angle ? angle : 0}deg)`
   }">
     {{ locked ? "locked" : "" }}
+    {{ expanded ? "expanded" : "" }}
 
     <div class="keyword" v-for="(keyword, index) in keywords" :key="keyword"
     :style="{
@@ -23,7 +24,7 @@ export default {
   props: {
     x: Number, y: Number, angle: Number,
     keywords: Array,
-    locked: Boolean,
+    locked: Boolean, expanded: Boolean,
   },
 
   data: () => ({
