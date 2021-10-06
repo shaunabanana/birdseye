@@ -15,9 +15,11 @@ import * as d3 from "d3";
 import { forceAttract } from 'd3-force-attract'
 const Vector = require('victor');
 
+import Tweet from "./Tweet"
+
 export default {
   name: 'Tweets',
-  components: {},
+  components: {Tweet},
   props: {
     robots: Array,
     tweets: Array,
