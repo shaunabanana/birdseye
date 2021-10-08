@@ -1,23 +1,24 @@
 
 <template>
   <div class="tweet" ref="tweet">
-    <div 
-      class="avatar"
-      :class="{
-        selected: selected,
-        browsing: browsing,
-        shrinked: shrinked,
-        related: related
-      }"
-      :style="{
-        'background-image': `url(${avatar})`,
-      }"
-    >
-    </div>
+    <div class="avatar"
+        :class="{
+          selected: selected,
+          browsing: browsing,
+          shrinked: shrinked,
+          related: related
+        }"
+        :style="{
+          'background-image': `url(${avatar})`,
+          'box-shadow': robot ? 'none' : `0px 0px 20px 10px rgba(${r}, ${g}, ${b}, ${alpha})`
+        }"></div>
 
-    <div class="content" 
-        :style="{ opacity:selected ? 1:0 }">
-      {{detailed ? content : content.slice(0, 80)}}
+    <div class="content left" 
+        :style="{ opacity:selected ? 1 : 0 }">
+      <div v-for="(line, index) in tweetLines" :key="avatar + index"
+          :class="{'reply-line': index === 0 & line.startsWith('Replying')}">
+        {{line}}
+      </div>
     </div>
 
   </div>
@@ -28,7 +29,16 @@
 export default {
   name: 'Tweet',
   components: {},
-  props: ['avatar', 'selected', 'browsing', 'shrinked', 'related', 'content', 'detailed'],
+  props: {
+    robot: Boolean,
+    x: Number, y: Number,
+    avatar: String, content: String, sentiment: Number,
+    browsing: Boolean, 
+    selected: Boolean, 
+    shrinked: Boolean, 
+    related: Boolean, 
+    detailed: Boolean
+  },
 
   data: () => ({
     drag: null,
@@ -42,7 +52,40 @@ export default {
     
   },
 
-  methods: {
+  computed: {
+    r () {
+      if (this.sentiment && this.sentiment > 0) {
+        return Math.ceil(this.sentiment * 255);
+      }
+      return 0;
+    },
+
+    g () {
+      if (this.sentiment && this.sentiment < 0) {
+        return Math.ceil(-this.sentiment * 100);
+      }
+      return 0;
+    },
+
+    b () {
+      if (this.sentiment && this.sentiment < 0) {
+        return Math.ceil(-this.sentiment * 255);
+      }
+      return 0;
+    },
+
+    alpha () {
+      if (this.sentiment) {
+        if (this.sentiment > 0) return Math.abs(this.sentiment) * 0.3;
+        if (this.sentiment < 0) return Math.abs(this.sentiment) * 0.5;
+      }
+      return 0;
+    },
+
+    tweetLines () {
+      return this.content.split("\n");
+    },
+
 
   }
 }
@@ -51,30 +94,39 @@ export default {
 
 <style>
 
+:root {
+  --size: 30px;
+}
+
 /* 头像+content整体的样式 */
 .tweet {
   position: absolute;
-  width: 50px;
-  height: 50px;
-  left: -25px;
-  top: -25px;
+  width: var(--size);
+  height: var(--size);
+  left: calc(var(--size) / -2);
+  top: calc(var(--size) / -2);
+  border-radius: 50%;
   overflow: visible;
 }
 
 /* 默认头像的样式 */
 .avatar {
-  width: 50px; /* 这边可不可以直接等于一个default头像大小的变量，这样就不用每次每个地方都要改 */
-  height: 50px;
-  background-size: 50px 50px;
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  background-size: var(--size) var(--size);
   border-radius: 50%; 
   overflow: hidden;
+  transition: all 0.2s ease-in-out;
+  z-index: 0;
 }
 
 /* 被选中的头像的样式 */
 /* 需考虑加border之后 会不会被overflow切掉 */
-.avatar.selected {
-  transform: scale(2.0);
-  border: 2px solid #00FFE0;
+.avatar.browsing.selected {
+  transform: translate(-1px, -1px) scale(2.0);
+  border: 1px solid white;
+  opacity: 1.0;
 }
 
 .avatar.browsing {
@@ -84,7 +136,7 @@ export default {
 
 .avatar.browsing.related {
   transform: scale(1.6);
-  border: 2px solid #ffffff;
+  border: 1px solid gray;
 }
 
 .avatar.shrinked {
@@ -98,11 +150,23 @@ export default {
 }
 
 .content {
-  width: 100px; 
-  background-color: #333333;
-  opacity: 0.2;
-  border-radius: 6%; 
+  position: absolute;
+  top: 0px;
+  padding: 0.5rem;
+  width: 350px; 
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 8px; 
   overflow: hidden;
+  transition: all 0.1s ease-in-out;
+  z-index: 99999;
+}
+
+.content.left {
+  left: calc(var(--size) * 2);
+}
+
+.content.right {
+  right: calc(var(--size) * 2);
 }
 
 .contentText {
@@ -110,5 +174,11 @@ export default {
   color: #14171a;
   font-size: 14px;
   line-height: 20px;
+}
+
+.reply-line {
+  font-size: 13px;
+  padding-bottom: 4px;
+  color: #a692ec;
 }
 </style>

@@ -25,6 +25,7 @@ export default class DataLoader {
                         parsed: tweetData.parsed,
                         vector: tweetData.vector,
                         sentiment: tweetData.sentiment,
+                        replyTo: tweetData.reply_to,
                         avatar: path.join(this.base, 'avatars', tweetData.avatar),
                         x: Math.random() * window.innerWidth, 
                         y: Math.random() * window.innerHeight,
@@ -40,7 +41,7 @@ export default class DataLoader {
                         }
                     })
                 })
-                resolve(tweets.filter(tweet => tweet.replies.length > 0 || tweet.reply_to));
+                resolve(tweets.filter(tweet => tweet.replies.length > 0 || tweet.replyTo));
             })
             .catch(response => {
                 reject(response);

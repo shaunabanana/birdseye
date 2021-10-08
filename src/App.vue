@@ -1,12 +1,23 @@
 <template>
   <div class="app" @click.stop="mapping = false">
     <projection-mapper :focused="mapping" @click.stop="mapping = !mapping">
-      <tweets ref="tweets" :robots="robots" :tweets="tweets" :selected="selectedTweets"/>
+      <div class="title">
+        <div class="main">Covid Vaccination</div>
+        <div class="sub">tweets in a week</div>
+      </div>
+      <links :replies="replies" :links="links"/>
 
-      <robot v-for="robot in robots" :key="robot.id"
+      <tweets ref="tweets" :robots="robots" :tweets="tweets" :selected="selectedTweets" />
+
+      <robot v-for="robot in robots" :key="robot.id" :ref="'robot' + robot.id" :name="robot.name"
         :x="robot.x" :y="robot.y" :angle="robot.angle" :keywords="robot.keywords"
-        :locked="robot.locked" :expanded="robot.expanded"
-        :style="{ opacity: robot.active ? 1 : 0 }"/>
+        :locked="robot.locked" :expanded="robot.expanded" :linked="robot.linked"
+        :selection="robot.selected" :automatic="robot.automatic && robot.linked.length > 0" :related="robot.related"
+        :moving="robot.moving"
+        :style="{ opacity: robot.active ? 1 : 0 }"
+        @browse="onBrowse"
+        @browse-linked="onBrowseLinked"
+        @rotate="rotateRobot" />
       
     </projection-mapper>
   </div>
@@ -18,6 +29,7 @@ const Vector = require('victor');
 import ProjectionMapper from "./components/ProjectionMapper";
 import Tweets from "./components/Tweets";
 import Robot from "./components/Robot";
+import Links from "./components/Links";
 
 import ToioConnector from "./toio";
 import DataLoader from "./dataloader"
@@ -28,11 +40,12 @@ export default {
   components: {
     ProjectionMapper,
     Tweets,
-    Robot
+    Robot,
+    Links
   },
 
   data: () => ({
-    debug: true,
+    debug: false,
 
     mapping: false,
 
@@ -43,25 +56,29 @@ export default {
     robots: [
       { 
         id: '0', type: 'robot', name: null, x: 0, y: 0, fx: -200, fy: -200, angle: 0, cluster: 0,
-        active: false, locked: false, expanded: false, keywords: []
+        active: false, locked: false, expanded: false, keywords: [], linked: [], selected: null,
+        related: [], automatic: false, moving: false,
       },
       {
         id: '1', type: 'robot', name: null, x: 0, y: 0, fx: -200, fy: -200, angle: 0, cluster: 1,
-        active: false, locked: false, expanded: false, keywords: []
+        active: false, locked: false, expanded: false, keywords: [], linked: [], selected: null,
+        related: [], automatic: false, moving: false,
       },
       { 
         id: '2', type: 'robot', name: null, x: 0, y: 0, fx: -200, fy: -200, angle: 0, cluster: 2,
-        active: false, locked: false, expanded: false, keywords: []
+        active: false, locked: false, expanded: false, keywords: [], linked: [], selected: null,
+        related: [], automatic: false, moving: false,
       },
       { 
         id: '3', type: 'robot', name: null, x: 0, y: 0, fx: -200, fy: -200, angle: 0, cluster: 3,
-        active: false, locked: false, expanded: false, keywords: []
+        active: false, locked: false, expanded: false, keywords: [], linked: [], selected: null,
+        related: [], automatic: false, moving: false,
       },
     ],
     tweets: [],
-    links: [],
-    clusterLinks: [],
+    replies: [],
 
+    focus: null,
   }),
 
   mounted () {
@@ -72,9 +89,11 @@ export default {
     this.toio.onMove = this.onToioMove.bind(this);
     this.toio.onExpand = this.onToioExpand.bind(this);
     this.toio.onDump = this.onToioDump.bind(this);
+    this.toio.onLink = this.onToioLink.bind(this);
 
     this.loader = new DataLoader('./dataset');
     this.loader.loadData().then(tweets => {
+      console.log(tweets);
       this.tweets = tweets;
     });
 
@@ -86,6 +105,15 @@ export default {
       for (let robot of this.robots) {
         if (robot.name === name) {
           return robot;
+        }
+      }
+      return null;
+    },
+
+    getTweetById(id) {
+      for (let tweet of this.tweets) {
+        if (tweet.id === id) {
+          return tweet;
         }
       }
       return null;
@@ -119,16 +147,30 @@ export default {
       if (this.debug) {
         event.x = (event.x - 347) / (649 - 347) * window.innerHeight * 1.414
         event.y = (event.y - 262) / (454 - 262) * window.innerHeight
+      } 
+      else {
+        event.x = (event.x - 52) / (625 - 52) * window.innerHeight * 1.414
+        event.y = (event.y - 479) / (886 - 479) * window.innerHeight
       }
+      
       robot.x = robot.fx = event.x;
       robot.y = robot.fy = event.y;
       robot.deltaAngle = event.angle - robot.angle;
       robot.angle = event.angle;
+      robot.moving = event.moving;
     },
 
     onToioExpand (event) {
       let robot = this.getRobotByName(event.cube);
+      if (robot.linked.length > 0) return;
       robot.expanded = !robot.expanded;
+      if (!robot.expanded && this.focus) {
+        let tweet = this.getTweetById(this.focus);
+        if (tweet.cluster === robot.cluster) {
+          this.focus = null;
+          this.updateReplies();
+        }
+      }
       console.log('Expand', robot);
     },
 
@@ -148,7 +190,71 @@ export default {
     onToioLink (event) {
       let from = this.getRobotByName(event.from);
       let to = this.getRobotByName(event.to);
-      console.log(from, to);
+      
+      if (from.linked.includes(to.name) && to.linked.includes(from.name)) {
+        from.linked = from.linked.filter(name => name !== to.name);
+        to.linked = to.linked.filter(name => name !== from.name);
+        from.expanded = false;
+        to.automatic = false;
+        to.expanded = false;
+        to.automatic = false;
+
+        let tweet = this.getTweetById(this.focus);
+        if (tweet.cluster === from.cluster || tweet.cluster === to.cluster ) {
+          this.focus = null;
+          this.updateReplies();
+        }
+
+      } else {
+        from.linked.push(to.name);
+        to.linked.push(from.name);
+        from.expanded = true;
+        to.expanded = true;
+      }
+    },
+
+    onBrowse (event) {
+      // console.log('Linked browsing', event.cube, event.tweet);
+      this.focus = event.tweet;
+      this.caluclateRelatedTweets();
+    },
+
+    onBrowseLinked (event) {
+      // console.log('Linked browsing', event.cube, event.tweet);
+      this.focus = event.tweet;
+      let robot = this.getRobotByName(event.cube);
+      this.caluclateRelatedTweets();
+      this.setLinkedAutomatic(robot.name, true)
+      robot.automatic = false;
+    },
+
+    rotateRobot (event) {
+      let robot = this.getRobotByName(event.cube);
+      let tweet = this.getTweetById(event.tweet);
+
+      let deltaPos = Vector(tweet.x, tweet.y).subtract(Vector(robot.x, robot.y));
+      let angle = deltaPos.angleDeg();
+      if (angle < 0) angle += 360;
+
+      this.toio.rotate(event.cube, angle);
+
+    },
+
+    setLinkedAutomatic (current, value, visited) {
+      if (!visited) visited = new Set();
+      if (visited.has(current)) return;
+
+      let robot = this.getRobotByName(current);
+      if (visited.size > 0) {
+        robot.automatic = value;
+        // console.log(this.$refs['robot' + robot.id].updateRotation);
+        // this.$refs['robot' + robot.id].updateRotation();
+      }
+
+      visited.add(current);
+      for (let robotName of robot.linked) {
+        this.setLinkedAutomatic(robotName, value, visited);
+      }
     },
 
     // (Re)cluster tweets according to current number of active & unlocked robots
@@ -176,7 +282,71 @@ export default {
       this.robots.forEach(robot => {
         if (robot.active) robot.locked = false;
       })
-    }
+    },
+
+    updateReplies() {
+      let replies = [];
+      if (this.focus) {
+        let tweet = this.getTweetById(this.focus);
+
+        if (tweet.replyTo) {
+          let replyToTweet = this.getTweetById(tweet.replyTo);
+          replies.push({ from: replyToTweet, to: tweet });
+        }
+
+        tweet.replies.forEach(tweetId => {
+          let reply = this.getTweetById(tweetId);
+          replies.push({ from: tweet, to: reply });
+        })
+      }
+      this.replies = replies;
+    },
+
+    caluclateRelatedTweets () {
+      this.updateReplies();
+      let related = {};
+      if (this.focus) {
+        let tweet = this.getTweetById(this.focus);
+
+        if (tweet.replyTo) {
+          let replyToTweet = this.getTweetById(tweet.replyTo);
+          if (!related[replyToTweet.cluster]) related[replyToTweet.cluster] = new Set();
+          related[replyToTweet.cluster].add(tweet.replyTo);
+        }
+
+        tweet.replies.forEach(tweetId => {
+          let reply = this.getTweetById(tweetId);
+          if (!related[reply.cluster]) related[reply.cluster] = new Set();
+          related[reply.cluster].add(tweetId);
+        })
+
+        this.activeRobots.forEach(robot => {
+          if (!related[robot.cluster]) related[robot.cluster] = new Set();
+          if (related[robot.cluster].size < 4) {
+            let tweets = this.tweets.filter(t => t.cluster);
+            let vec = Vector.fromArray(tweet.vector);
+            tweets.sort( (t1, t2) => {
+              let vec1 = Vector.fromArray(t1.vector);
+              let vec2 = Vector.fromArray(t2.vector);
+              let cos1 = vec1.dot(vec) / (vec1.length() * vec.length());
+              let cos2 = vec2.dot(vec) / (vec2.length() * vec.length());
+              return cos1 - cos2
+            });
+            // console.log(tweets);
+            let sliceSize = 4 - related[robot.cluster].size;
+            tweets = tweets.slice(0, sliceSize);
+            // console.log(tweets);
+            tweets.forEach(t => {
+              related[robot.cluster].add(t.id);
+            });
+          }
+        })
+      }
+
+      Object.keys(related).forEach(id => {
+        this.robots[id].related = [...related[id]];
+      })
+    },
   },
 
   computed: {
@@ -221,10 +391,41 @@ export default {
         });
         
         let selectedIndex = angles.indexOf(Math.min(...angles));
-        selected.push(tweets[selectedIndex].id);
+        if (tweets[selectedIndex]) {
+          selected.push(tweets[selectedIndex].id);
+          robot.selected = tweets[selectedIndex].id;
+        }
       });
       return selected;
-    }
+    },
+
+    links() {
+      let links = [], mapping = {};
+      this.activeRobots.forEach(robot => {
+        robot.linked.forEach(robotName => {
+          if (!mapping[robot.name]) mapping[robot.name] = [];
+          if (!mapping[robotName]) mapping[robotName] = [];
+
+          if (mapping[robot.name].includes(robotName)) return;
+          if (mapping[robotName].includes(robot.name)) return;
+
+          mapping[robot.name].push(robotName);
+          links.push({
+            from: robot,
+            to: this.getRobotByName(robotName)
+          })
+        });
+      });
+      return links;
+    },
+
+    hasLinks () {
+      let result = false;
+      this.activeRobots.forEach(robot => {
+        if (robot.linked.length > 0) result = true;
+      });
+      return result;
+    },
   }
 };
 </script>
@@ -245,6 +446,25 @@ html, body {
 .app {
   width: calc(1.414 * 100vh);
   height: 100vh;
+}
+
+.title {
+  position: absolute;
+  top: 1rem;
+  left: calc(1.414 * 100vh / 2);
+  width: 300px;
+  transform: translate(-50%, 0);
+  text-align: center;
+}
+
+.title .main {
+  font-size: 2rem;
+  color: white;
+}
+
+.title .sub {
+  font-size: 1rem;
+  color: #a692ec;
 }
 
 </style>

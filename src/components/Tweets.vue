@@ -1,12 +1,26 @@
 <template>
   <div class="tweets" ref="tweets">
-    <div v-for="node in nodes" :key="node.id"
-      :class="node.type"
+    <tweet v-for="node in nodes" :key="node.id"
+      :class="{
+        robot: node.type === 'robot',
+        expanded: node.expanded,
+      }"
       :style="{
-        'background-image': `url(${node.avatar})`,
-        'transform': `translate(${node.x}px, ${node.y}px) scale(${selected.includes(node.id) ? 2 : 1}) rotate(${node.angle ? node.angle : 0}deg)`
-      }">
-    </div>
+        transform: `translate(${node.x}px, ${node.y}px)`,
+        width: node.expanded ? `${clusterSizes[node.cluster] * 57 / Math.PI + 30}px` : false,
+        height: node.expanded ? `${clusterSizes[node.cluster] * 57 / Math.PI + 30}px` : false,
+        top: node.expanded ? `-${clusterSizes[node.cluster] * 57 / Math.PI / 2 + 15}px` : false,
+        left: node.expanded ? `-${clusterSizes[node.cluster] * 57 / Math.PI / 2 + 15}px` : false
+      }"
+      :avatar="node.avatar"
+      :content="node.content"
+      :sentiment="node.sentiment"
+      :robot="node.type === 'robot'"
+      :selected="node.type === 'tweet' && selected.includes(node.id)"
+      :browsing="robots[node.cluster] ? robots[node.cluster].expanded : false"
+      :shrinked="browsing && (robots[node.cluster] ? !robots[node.cluster].expanded : false)"
+      :related="related.includes(node.id)"
+      />
   </div>
 </template>
 
@@ -23,7 +37,7 @@ export default {
   props: {
     robots: Array,
     tweets: Array,
-    selected: Array
+    selected: Array,
   },
 
   data: () => ({
@@ -82,7 +96,13 @@ export default {
     updateForces() {
       // Update collision radius
       this.simulation.force('collision')
-        .radius(d => d.type === 'robot' ? 65 : (this.selected.includes(d.id) ? 45 : 25));
+        .radius(d => {
+          if (d.type === 'robot') return 65;
+          if (this.browsing && this.robots[d.cluster] && !this.robots[d.cluster].expanded)
+            return 13;
+          if (this.selected.includes(d.id)) return 45
+          return 25;
+        });
       
       // Update browsing targets
       this.simulation.force('browse')
@@ -92,7 +112,8 @@ export default {
 
           let robot = this.robots[d.cluster];
           let robotPos = Vector(robot.x, robot.y);
-          let radius = this.clusterSizes[d.cluster] * 55 / Math.PI / 2;
+          let radius = this.clusterSizes[d.cluster] * 57 / Math.PI / 2;
+          if (radius < 120) radius = 120;
 
           let deltaPos = Vector(d.x, d.y).subtract(robotPos).norm();
 
@@ -123,6 +144,10 @@ export default {
       if (this.simulation) this.simulation.alphaTarget(0.1).restart();
     },
 
+    clusterRadius(node) {
+      return this.clusterSizes[node.cluster] * 57 / Math.PI / 2;
+    }
+
   },
 
   computed: {
@@ -133,6 +158,27 @@ export default {
         sizes[tweet.cluster] ++;
       })
       return sizes;
+    },
+
+    browsing () {
+      let result = false;
+      this.robots.forEach( robot => {
+        if (robot.expanded) {
+          result = true;
+        }
+      })
+      return result;
+    },
+
+    related () {
+      let related = [];
+      this.robots.forEach( robot => {
+        if (robot.related) {
+          related = related.concat(robot.related);
+        }
+      })
+      // console.log(related);
+      return related;
     }
   }
 }
@@ -141,28 +187,14 @@ export default {
 
 <style>
 
-:root {
-  --scale: 1.0;
-}
-
 .tweets {
   width: 100%;
   height: 100%;
 }
 
-/* .robot {
-  cursor: pointer;
-} */
-
-.tweet {
-  position: absolute;
-  width: calc(var(--scale) * 30px);
-  height: calc(var(--scale) * 30px);
-  left: calc(var(--scale) * -15px);
-  top: calc(var(--scale) * -15px);
-  background-size: calc(var(--scale) * 30px) calc(var(--scale) * 30px);
-  border-radius: 25px;
-  overflow: hidden;
+.tweet.robot.expanded {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0px 0px 20px 20px rgba(255, 255, 255, 0.15);
 }
 
 </style>

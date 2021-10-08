@@ -63,7 +63,7 @@ export default class Clusterer {
                 console.log(response.data);
                 let oldClustering = this.toClustering(tweets, tweets.map(t => t.cluster));
                 let newClustering = this.toClustering(tweets, response.data);
-                console.log(oldClustering, newClustering);
+                // console.log(oldClustering, newClustering);
 
                 // Apply assignment to labels
                 let assignment = this.assignClusterMapping(robots, oldClustering, newClustering)

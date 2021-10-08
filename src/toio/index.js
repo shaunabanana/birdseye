@@ -43,4 +43,10 @@ export default class ToioConnector {
         } 
     }
 
+    rotate(robot, angle) {
+        this.websocket.send(JSON.stringify({
+            cube: robot, angle: angle
+        }))
+    }
+
 }
