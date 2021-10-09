@@ -59,9 +59,9 @@ python api.py
 ### 2. Run code in birdseye-toio
 ```
 npm install
-# Compile latest toio.js and add to node_modules
+# After the previous line, compile latest toio.js and add to node_modules
 npm start
-# Turn on your robots one by one, and look for confirmation of connection in console
+# Now turn on your robots one by one, and look for confirmation of connection in console
 ```
 
 ### 3. Run birdseye frontend
