@@ -3,7 +3,7 @@
 <h1 align="center">BirdsEye: Reading the Blue Bird using bird's eye view</h1>
 <p align="center">A project submitted to the <a href="https://uist.acm.org/uist2021/cfp.html#sic">UIST 2021 Student Innovation Contest.</p>
 <p align="center">
-  <a href="https://drive.google.com/file/d/1t6ZZkvQ8wNURpF4umpO3X2qT0VfmAlvU/view">Video preview</a> | <a href="https://github.com/shaunabanana/intrigue/issues">Share ideas</a> | <a href="https://github.com/shaunabanana/birdseye-toio">Go to Toio code</a>
+  <a href="https://drive.google.com/file/d/1t6ZZkvQ8wNURpF4umpO3X2qT0VfmAlvU/view">Video preview</a> | <a href="https://github.com/shaunabanana/birdseye/issues">Share ideas</a> | <a href="https://github.com/shaunabanana/birdseye-toio">Go to Toio code</a>
 </p>
 
 ## Concept
