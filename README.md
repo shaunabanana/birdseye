@@ -51,7 +51,7 @@ location /toio {
 
 ### 1. Start computing service
 ```
-pip install -r requirement.txt
+pip install -r requirements.txt
 cd service
 python api.py
 ```
