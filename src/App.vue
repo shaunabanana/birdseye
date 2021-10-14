@@ -231,6 +231,7 @@ export default {
     rotateRobot (event) {
       let robot = this.getRobotByName(event.cube);
       let tweet = this.getTweetById(event.tweet);
+      // console.log('Rotating robot to tweet', event.cube, tweet.content)
 
       let deltaPos = Vector(tweet.x, tweet.y).subtract(Vector(robot.x, robot.y));
       let angle = deltaPos.angleDeg();
@@ -383,7 +384,7 @@ export default {
         if (!robot.active || !robot.expanded) return;
         let tweets = this.tweets.filter( tweet => tweet.cluster === robot.cluster);
         let robotPos = Vector(robot.x, robot.y);
-        let robotAngle = Vector(0, 1).rotateDeg(robot.angle).angleDeg();
+        let robotAngle = Vector(1, 0).rotateDeg(robot.angle).angleDeg();
         
         let angles = tweets.map(tweet => {
           let angle = Vector(tweet.x, tweet.y).subtract(robotPos).angleDeg();

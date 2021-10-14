@@ -83,6 +83,7 @@ export default {
     },
 
     tweetLines () {
+      if (!this.content) return [''];
       return this.content.split("\n");
     },
 
